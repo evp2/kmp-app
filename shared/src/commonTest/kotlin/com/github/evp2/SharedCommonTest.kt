@@ -46,7 +46,7 @@ class SharedCommonTest {
             companyName = "Test Co",
             roleTitle = "Test Developer",
             location = "Remote",
-            applicationDateEpochMillis = 123456789L,
+            applicationDate = "123456789",
             currentStage = ApplicationStage.APPLIED,
             status = ApplicationStatus.ACTIVE
         )
