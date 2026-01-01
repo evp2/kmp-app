@@ -1,0 +1,28 @@
+import com.github.evp2.model.ApplicationStage;
+import com.github.evp2.model.ApplicationStatus;
+
+CREATE TABLE jobApplication (
+    id TEXT NOT NULL PRIMARY KEY,
+    companyName TEXT,
+    roleTitle TEXT,
+    roleDescription TEXT,
+    location TEXT,
+    applicationDate TEXT,
+    currentStage TEXT AS ApplicationStage NOT NULL,
+    status TEXT AS ApplicationStatus NOT NULL,
+    source TEXT,
+    notes TEXT
+);
+
+insertJobApplication:
+INSERT OR REPLACE INTO jobApplication(id, companyName, roleTitle, roleDescription, location, applicationDate, currentStage, status, source, notes)
+VALUES ?;
+
+selectAllJobApplications:
+SELECT * FROM jobApplication;
+
+selectJobApplicationById:
+SELECT * FROM jobApplication WHERE id = ?;
+
+deleteJobApplicationById:
+DELETE FROM jobApplication WHERE id = ?;

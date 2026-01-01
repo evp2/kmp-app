@@ -1,0 +1,18 @@
+CREATE TABLE jobApplicationContact (
+    jobApplicationId TEXT NOT NULL,
+    contactId TEXT NOT NULL,
+    PRIMARY KEY (jobApplicationId, contactId)
+);
+
+insertJobApplicationContact:
+INSERT OR REPLACE INTO jobApplicationContact(jobApplicationId, contactId)
+VALUES (?, ?);
+
+selectContactsForJobApplication:
+SELECT contactId FROM jobApplicationContact WHERE jobApplicationId = ?;
+
+selectJobApplicationsForContact:
+SELECT jobApplicationId FROM jobApplicationContact WHERE contactId = ?;
+
+deleteJobApplicationContact:
+DELETE FROM jobApplicationContact WHERE jobApplicationId = ? AND contactId = ?;

@@ -1,0 +1,23 @@
+import com.github.evp2.model.EventType;
+
+CREATE TABLE event (
+    id TEXT NOT NULL PRIMARY KEY,
+    jobApplicationId TEXT NOT NULL,
+    contactId TEXT,
+    type TEXT AS EventType NOT NULL,
+    occurredAt TEXT,
+    notes TEXT
+);
+
+insertEvent:
+INSERT OR REPLACE INTO event(id, jobApplicationId, contactId, type, occurredAt, notes)
+VALUES ?;
+
+selectAllEvents:
+SELECT * FROM event;
+
+selectEventsByJobApplicationId:
+SELECT * FROM event WHERE jobApplicationId = ?;
+
+deleteEventById:
+DELETE FROM event WHERE id = ?;

@@ -1,0 +1,23 @@
+import com.github.evp2.model.ContactRole;
+
+CREATE TABLE contact (
+    id TEXT NOT NULL PRIMARY KEY,
+    fullName TEXT NOT NULL,
+    role TEXT AS ContactRole NOT NULL,
+    email TEXT,
+    linkedInUrl TEXT,
+    notes TEXT
+);
+
+insertContact:
+INSERT OR REPLACE INTO contact(id, fullName, role, email, linkedInUrl, notes)
+VALUES ?;
+
+selectAllContacts:
+SELECT * FROM contact;
+
+selectContactById:
+SELECT * FROM contact WHERE id = ?;
+
+deleteContactById:
+DELETE FROM contact WHERE id = ?;
