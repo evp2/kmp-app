@@ -43,9 +43,9 @@ import com.github.evp2.model.ApplicationStage
 import com.github.evp2.model.ApplicationStatus
 import com.github.evp2.model.Contact
 import com.github.evp2.model.ContactRole
+import com.github.evp2.model.Event
+import com.github.evp2.model.EventType
 import com.github.evp2.model.InMemoryData
-import com.github.evp2.model.Interaction
-import com.github.evp2.model.InteractionType
 import com.github.evp2.model.JobApplication
 
 import org.jetbrains.compose.ui.tooling.preview.Preview
@@ -182,7 +182,7 @@ fun EventsScreen() {
                         contact?.let {
                             Text(text = "With: ${it.fullName}", style = MaterialTheme.typography.bodySmall)
                         }
-                        Text(text = "Date: ${application?.applicationDateEpochMillis}", style = MaterialTheme.typography.bodySmall)
+                        Text(text = "Date: ${application?.applicationDate}", style = MaterialTheme.typography.bodySmall)
                         interaction.notes?.let {
                             Text(text = it, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = 4.dp))
                         }
@@ -266,7 +266,7 @@ fun AddApplicationForm(onComplete: () -> Unit) {
                         id = "j${InMemoryData.jobApplications.size + 1}",
                         companyName = company,
                         roleTitle = role,
-                        applicationDateEpochMillis = Clock.System.now().toEpochMilliseconds(),
+                        applicationDate = Clock.System.now().toEpochMilliseconds().toString(),
                         currentStage = ApplicationStage.APPLIED,
                         status = ApplicationStatus.ACTIVE,
                         roleDescription = "",
@@ -294,11 +294,11 @@ fun AddInteractionForm(onComplete: () -> Unit) {
         BlackButton(
             onClick = {
                 InMemoryData.interactions.add(
-                    Interaction(
+                    Event(
                         id = "i${InMemoryData.interactions.size + 1}",
                         jobApplicationId = InMemoryData.jobApplications.firstOrNull()?.id ?: "",
-                        type = InteractionType.PHONE_CALL,
-                        occurredAtEpochMillis = Clock.System.now().toEpochMilliseconds(),
+                        type = EventType.PHONE_CALL,
+                        occurredAt = Clock.System.now().toEpochMilliseconds().toString(),
                         notes = notes,
                         contactId = null
                     )
@@ -322,8 +322,8 @@ fun HomeScreen() {
             InMemoryData.jobApplications.toList()
         } else {
             InMemoryData.jobApplications.filter {
-                it.companyName.contains(searchQuery, ignoreCase = true) ||
-                        it.roleTitle.contains(searchQuery, ignoreCase = true)
+                it.companyName?.contains(searchQuery, ignoreCase = true) == true ||
+                        it.roleTitle?.contains(searchQuery, ignoreCase = true) == true
             }
         }
     }
@@ -359,8 +359,8 @@ fun HomeScreen() {
                     elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
-                        Text(text = application.companyName, style = MaterialTheme.typography.headlineSmall)
-                        Text(text = application.roleTitle, style = MaterialTheme.typography.titleMedium)
+                        application.companyName?.let { Text(text = it, style = MaterialTheme.typography.headlineSmall) }
+                        application.roleTitle?.let { Text(text = it, style = MaterialTheme.typography.titleMedium) }
                         Text(text = "Status: ${application.status.name}", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
                         Text(text = "Stage: ${application.currentStage.name}", style = MaterialTheme.typography.bodySmall)
 
