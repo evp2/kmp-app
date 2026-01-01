@@ -44,16 +44,9 @@ import com.github.evp2.model.ApplicationStatus
 import com.github.evp2.model.Contact
 import com.github.evp2.model.ContactRole
 import com.github.evp2.model.InMemoryData
-import com.github.evp2.model.Interaction
-import com.github.evp2.model.InteractionType
+import com.github.evp2.model.Event
+import com.github.evp2.model.EventType
 import com.github.evp2.model.JobApplication
-import kotlinx.datetime.Instant
-import kotlinx.datetime.Clock
-import kotlinx.datetime.LocalDateTime
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.format
-import kotlinx.datetime.toLocalDateTime
-import kotlinx.datetime.format.byUnicodePattern
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
 
@@ -165,15 +158,9 @@ fun EventsScreen() {
     Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
         Text("My Events", style = MaterialTheme.typography.headlineMedium, modifier = Modifier.padding(bottom = 16.dp))
         LazyColumn {
-            items(InMemoryData.interactions) { interaction ->
+            items(InMemoryData.events) { interaction ->
                 val contact = interaction.contactId?.let { id -> InMemoryData.contacts.find { it.id == id } }
                 val application = InMemoryData.jobApplications.find { it.id == interaction.jobApplicationId }
-//                val dateFormat = LocalDateTime.Format {
-//                    byUnicodePattern("MM-d-yyyy HH:mm")
-//                }
-//                val instant = kotlinx.datetime.Instant.fromEpochMilliseconds(interaction.occurredAtEpochMillis)
-//                val localDateTime = instant.toLocalDateTime(kotlinx.datetime.TimeZone.currentSystemDefault())
-//                val formattedDate = localDateTime.format(dateFormat)
 
                 Card(
                     modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
@@ -187,7 +174,7 @@ fun EventsScreen() {
                         contact?.let {
                             Text(text = "With: ${it.fullName}", style = MaterialTheme.typography.bodySmall)
                         }
-                        Text(text = "Date: ${application?.applicationDateEpochMillis}", style = MaterialTheme.typography.bodySmall)
+                        Text(text = "Date: ${application?.applicationDate}", style = MaterialTheme.typography.bodySmall)
                         interaction.notes?.let {
                             Text(text = it, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = 4.dp))
                         }
@@ -256,9 +243,12 @@ fun AddContactForm(onComplete: () -> Unit) {
 }
 
 @Composable
+@OptIn(kotlin.time.ExperimentalTime::class)
 fun AddApplicationForm(onComplete: () -> Unit) {
     var company by remember { mutableStateOf("") }
     var role by remember { mutableStateOf("") }
+
+    val now = kotlin.time.Clock.System.now().toEpochMilliseconds()
 
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text("New Application", style = MaterialTheme.typography.headlineSmall)
@@ -271,7 +261,7 @@ fun AddApplicationForm(onComplete: () -> Unit) {
                         id = "j${InMemoryData.jobApplications.size + 1}",
                         companyName = company,
                         roleTitle = role,
-                        applicationDateEpochMillis = kotlinx.datetime.Clock.System.now().toEpochMilliseconds(),
+                        applicationDate = now.toString(),
                         currentStage = ApplicationStage.APPLIED,
                         status = ApplicationStatus.ACTIVE,
                         roleDescription = "",
@@ -289,8 +279,11 @@ fun AddApplicationForm(onComplete: () -> Unit) {
 }
 
 @Composable
+@OptIn(kotlin.time.ExperimentalTime::class)
 fun AddInteractionForm(onComplete: () -> Unit) {
     var notes by remember { mutableStateOf("") }
+
+    val now = kotlin.time.Clock.System.now().toEpochMilliseconds()
 
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text("New Interaction", style = MaterialTheme.typography.headlineSmall)
@@ -298,12 +291,12 @@ fun AddInteractionForm(onComplete: () -> Unit) {
         Text("Note: Defaulting to first application for demo", style = MaterialTheme.typography.bodySmall)
         BlackButton(
             onClick = {
-                InMemoryData.interactions.add(
-                    Interaction(
-                        id = "i${InMemoryData.interactions.size + 1}",
+                InMemoryData.events.add(
+                    Event(
+                        id = "i${InMemoryData.events.size + 1}",
                         jobApplicationId = InMemoryData.jobApplications.firstOrNull()?.id ?: "",
-                        type = InteractionType.PHONE_CALL,
-                        occurredAtEpochMillis = kotlinx.datetime.Clock.System.now().toEpochMilliseconds(),
+                        type = EventType.PHONE_CALL,
+                        occurredAt = now.toString(),
                         notes = notes,
                         contactId = null
                     )
@@ -327,8 +320,8 @@ fun HomeScreen() {
             InMemoryData.jobApplications.toList()
         } else {
             InMemoryData.jobApplications.filter {
-                it.companyName.contains(searchQuery, ignoreCase = true) ||
-                        it.roleTitle.contains(searchQuery, ignoreCase = true)
+                it.companyName?.contains(searchQuery, ignoreCase = true) == true ||
+                        it.roleTitle?.contains(searchQuery, ignoreCase = true) == true
             }
         }
     }
@@ -364,8 +357,8 @@ fun HomeScreen() {
                     elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
-                        Text(text = application.companyName, style = MaterialTheme.typography.headlineSmall)
-                        Text(text = application.roleTitle, style = MaterialTheme.typography.titleMedium)
+                        application.companyName?.let { Text(text = it, style = MaterialTheme.typography.headlineSmall) }
+                        application.roleTitle?.let { Text(text = it, style = MaterialTheme.typography.titleMedium) }
                         Text(text = "Status: ${application.status.name}", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
                         Text(text = "Stage: ${application.currentStage.name}", style = MaterialTheme.typography.bodySmall)
 
