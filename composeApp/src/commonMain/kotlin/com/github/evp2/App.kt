@@ -47,14 +47,9 @@ import com.github.evp2.model.InMemoryData
 import com.github.evp2.model.Interaction
 import com.github.evp2.model.InteractionType
 import com.github.evp2.model.JobApplication
-import kotlinx.datetime.Instant
-import kotlinx.datetime.Clock
-import kotlinx.datetime.LocalDateTime
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.format
-import kotlinx.datetime.toLocalDateTime
-import kotlinx.datetime.format.byUnicodePattern
+
 import org.jetbrains.compose.ui.tooling.preview.Preview
+import kotlin.time.Clock
 
 
 @Composable
@@ -271,7 +266,7 @@ fun AddApplicationForm(onComplete: () -> Unit) {
                         id = "j${InMemoryData.jobApplications.size + 1}",
                         companyName = company,
                         roleTitle = role,
-                        applicationDateEpochMillis = kotlinx.datetime.Clock.System.now().toEpochMilliseconds(),
+                        applicationDateEpochMillis = Clock.System.now().toEpochMilliseconds(),
                         currentStage = ApplicationStage.APPLIED,
                         status = ApplicationStatus.ACTIVE,
                         roleDescription = "",
@@ -303,7 +298,7 @@ fun AddInteractionForm(onComplete: () -> Unit) {
                         id = "i${InMemoryData.interactions.size + 1}",
                         jobApplicationId = InMemoryData.jobApplications.firstOrNull()?.id ?: "",
                         type = InteractionType.PHONE_CALL,
-                        occurredAtEpochMillis = kotlinx.datetime.Clock.System.now().toEpochMilliseconds(),
+                        occurredAtEpochMillis = Clock.System.now().toEpochMilliseconds(),
                         notes = notes,
                         contactId = null
                     )
