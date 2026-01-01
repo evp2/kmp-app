@@ -3,7 +3,7 @@ package com.github.evp2.model
 object InMemoryData {
     val contacts = mutableListOf(
         Contact(
-            id = "c1",
+            id = 1,
             fullName = "Alice Smith",
             role = ContactRole.RECRUITER,
             email = "alice.smith@google.com",
@@ -11,7 +11,7 @@ object InMemoryData {
             notes = "Very helpful during the initial screen."
         ),
         Contact(
-            id = "c2",
+            id = 2,
             fullName = "Bob Johnson",
             role = ContactRole.HIRING_MANAGER,
             email = "bob.johnson@meta.com",
@@ -19,7 +19,7 @@ object InMemoryData {
             notes = "Interested in my previous experience with Compose."
         ),
         Contact(
-            id = "c3",
+            id = 3,
             fullName = "Charlie Davis",
             role = ContactRole.INTERVIEWER,
             email = "charlie.davis@abc_staffing.com",
@@ -29,7 +29,7 @@ object InMemoryData {
 
     val jobApplications = mutableListOf(
         JobApplication(
-            id = "j1",
+            id = 1,
             companyName = "Google",
             roleTitle = "Senior Android Engineer",
             roleDescription = "Developing core search features for Android.",
@@ -41,7 +41,7 @@ object InMemoryData {
             notes = "Focus on Jetpack Compose and Performance."
         ),
         JobApplication(
-            id = "j2",
+            id = 2,
             companyName = "Meta",
             roleTitle = "Software Engineer",
             roleDescription = "Working on Instagram Reels infrastructure.",
@@ -53,7 +53,7 @@ object InMemoryData {
             notes = "Negotiating compensation package."
         ),
         JobApplication(
-            id = "j3",
+            id = 3,
             companyName = "Apple",
             roleTitle = "iOS Engineer",
             roleDescription = "Core iOS Systems Architecture team.",
@@ -65,7 +65,7 @@ object InMemoryData {
             notes = "Referred from a friend."
         ),
         JobApplication(
-            id = "j4",
+            id = 4,
             companyName = "Amazon",
             roleTitle = "SDE II",
             roleDescription = "AWS S3 storage backend.",
@@ -78,27 +78,27 @@ object InMemoryData {
         ),
     )
 
-    val interactions = mutableListOf(
+    val events = mutableListOf(
         Event(
-            id = "i1",
-            jobApplicationId = "j1",
-            contactId = "c1",
+            id = 1,
+            jobApplicationId = 1,
+            contactId = 1,
             type = EventType.PHONE_CALL,
             occurredAt = "1714608000000", // 2024-05-02
             notes = "Initial recruiter screen. Went well."
         ),
         Event(
-            id = "i2",
-            jobApplicationId = "j1",
+            id = 2,
+            jobApplicationId = 1,
             contactId = null,
             type = EventType.VIDEO_CALL,
             occurredAt = "1714953600000", // 2024-05-06
             notes = "Technical round 1: Algorithms and Data Structures."
         ),
         Event(
-            id = "i3",
-            jobApplicationId = "j2",
-            contactId = "c2",
+            id = 3,
+            jobApplicationId = 2,
+            contactId = 2,
             type = EventType.INTERVIEW,
             occurredAt = "1715212800000", // 2024-05-09
             notes = "Final onsite (virtual). Met the whole team."
@@ -106,9 +106,9 @@ object InMemoryData {
     )
 
     val jobApplicationContacts = mutableListOf(
-        JobApplicationContact("j1", "c1"),
-        JobApplicationContact("j2", "c2"),
-        JobApplicationContact("j3", "c3"),
-        JobApplicationContact("j4", "c3"),
+        JobApplicationContact(1, 1),
+        JobApplicationContact(2, 2),
+        JobApplicationContact(3, 3),
+        JobApplicationContact(4, 3),
     )
 }

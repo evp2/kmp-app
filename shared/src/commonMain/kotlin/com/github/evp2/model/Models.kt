@@ -41,7 +41,7 @@ enum class EventType {
 @Serializable
 data class Contact(
     @SerialName("_id")
-    val id: String,
+    val id: Int,
     @SerialName("full_name")
     val fullName: String,
     @SerialName("role")
@@ -57,11 +57,11 @@ data class Contact(
 @Serializable
 data class Event(
     @SerialName("id")
-    val id: String,
+    val id: Int,
     @SerialName("job_application_id")
-    val jobApplicationId: String,
+    val jobApplicationId: Int,
     @SerialName("contact_id")
-    val contactId: String?,
+    val contactId: Int?,
     @SerialName("type")
     val type: EventType,
     @SerialName("occurred_at")
@@ -73,7 +73,7 @@ data class Event(
 @Serializable
 data class JobApplication(
     @SerialName("id")
-    val id: String,
+    val id: Int,
     @SerialName("company_name")
     val companyName: String? = null,
     @SerialName("role_title")
@@ -97,7 +97,7 @@ data class JobApplication(
 @Serializable
 data class JobApplicationContact(
     @SerialName("job_application_id")
-    val jobApplicationId: String,
+    val jobApplicationId: Int,
     @SerialName("contact_id")
-    val contactId: String
+    val contactId: Int
 )

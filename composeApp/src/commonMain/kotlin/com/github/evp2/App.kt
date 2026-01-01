@@ -160,15 +160,9 @@ fun EventsScreen() {
     Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
         Text("My Events", style = MaterialTheme.typography.headlineMedium, modifier = Modifier.padding(bottom = 16.dp))
         LazyColumn {
-            items(InMemoryData.interactions) { interaction ->
+            items(InMemoryData.events) { interaction ->
                 val contact = interaction.contactId?.let { id -> InMemoryData.contacts.find { it.id == id } }
                 val application = InMemoryData.jobApplications.find { it.id == interaction.jobApplicationId }
-//                val dateFormat = LocalDateTime.Format {
-//                    byUnicodePattern("MM-d-yyyy HH:mm")
-//                }
-//                val instant = kotlinx.datetime.Instant.fromEpochMilliseconds(interaction.occurredAtEpochMillis)
-//                val localDateTime = instant.toLocalDateTime(kotlinx.datetime.TimeZone.currentSystemDefault())
-//                val formattedDate = localDateTime.format(dateFormat)
 
                 Card(
                     modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
@@ -239,7 +233,7 @@ fun AddContactForm(onComplete: () -> Unit) {
         OutlinedTextField(value = email, onValueChange = { email = it }, label = { Text("Email") }, modifier = Modifier.fillMaxWidth())
         BlackButton(
             onClick = {
-                InMemoryData.contacts.add(Contact(id = "c${InMemoryData.contacts.size + 1}", fullName = name, role = ContactRole.RECRUITER, email = email))
+                InMemoryData.contacts.add(Contact(id = InMemoryData.contacts.size + 1, fullName = name, role = ContactRole.RECRUITER, email = email))
                 onComplete()
             },
             enabled = name.isNotBlank(),
@@ -263,7 +257,7 @@ fun AddApplicationForm(onComplete: () -> Unit) {
             onClick = {
                 InMemoryData.jobApplications.add(
                     JobApplication(
-                        id = "j${InMemoryData.jobApplications.size + 1}",
+                        id = InMemoryData.jobApplications.size + 1,
                         companyName = company,
                         roleTitle = role,
                         applicationDate = Clock.System.now().toEpochMilliseconds().toString(),
@@ -293,10 +287,10 @@ fun AddInteractionForm(onComplete: () -> Unit) {
         Text("Note: Defaulting to first application for demo", style = MaterialTheme.typography.bodySmall)
         BlackButton(
             onClick = {
-                InMemoryData.interactions.add(
+                InMemoryData.events.add(
                     Event(
-                        id = "i${InMemoryData.interactions.size + 1}",
-                        jobApplicationId = InMemoryData.jobApplications.firstOrNull()?.id ?: "",
+                        id = InMemoryData.events.size + 1,
+                        jobApplicationId = InMemoryData.jobApplications.firstOrNull()?.id ?: 1,
                         type = EventType.PHONE_CALL,
                         occurredAt = Clock.System.now().toEpochMilliseconds().toString(),
                         notes = notes,
