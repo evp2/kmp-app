@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -16,11 +17,16 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Contacts
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -32,6 +38,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -47,6 +54,7 @@ import com.github.evp2.model.Event
 import com.github.evp2.model.EventType
 import com.github.evp2.model.InMemoryData
 import com.github.evp2.model.JobApplication
+import com.github.evp2.model.JobApplicationContact
 
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import kotlin.time.Clock
@@ -71,6 +79,46 @@ fun BlackButton(
         )
     ) {
         content()
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun <T : Enum<T>> EnumDropdown(
+    label: String,
+    options: Array<T>,
+    selectedOption: T,
+    onOptionSelected: (T) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+
+    ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = { expanded = !expanded },
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        OutlinedTextField(
+            value = selectedOption.name,
+            onValueChange = {},
+            readOnly = true,
+            label = { Text(label) },
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+            modifier = Modifier.menuAnchor().fillMaxWidth()
+        )
+        ExposedDropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false }
+        ) {
+            options.forEach { option ->
+                DropdownMenuItem(
+                    text = { Text(option.name) },
+                    onClick = {
+                        onOptionSelected(option)
+                        expanded = false
+                    }
+                )
+            }
+        }
     }
 }
 
@@ -222,18 +270,79 @@ fun AddScreen() {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddContactForm(onComplete: () -> Unit) {
     var name by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
+    var role by remember { mutableStateOf(ContactRole.OTHER) }
+    val selectedApplications = remember { mutableStateListOf<JobApplication>() }
+    var appExpanded by remember { mutableStateOf(false) }
 
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text("New Contact", style = MaterialTheme.typography.headlineSmall)
         OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Full Name") }, modifier = Modifier.fillMaxWidth())
         OutlinedTextField(value = email, onValueChange = { email = it }, label = { Text("Email") }, modifier = Modifier.fillMaxWidth())
+        
+        EnumDropdown(
+            label = "Role",
+            options = ContactRole.values(),
+            selectedOption = role,
+            onOptionSelected = { role = it }
+        )
+
+        Text("Associated Applications", style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(top = 8.dp))
+        ExposedDropdownMenuBox(
+            expanded = appExpanded,
+            onExpandedChange = { appExpanded = !appExpanded },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            OutlinedTextField(
+                value = "Select Application",
+                onValueChange = {},
+                readOnly = true,
+                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = appExpanded) },
+                modifier = Modifier.menuAnchor().fillMaxWidth()
+            )
+            ExposedDropdownMenu(
+                expanded = appExpanded,
+                onDismissRequest = { appExpanded = false }
+            ) {
+                InMemoryData.jobApplications.forEach { app ->
+                    if (app !in selectedApplications) {
+                        DropdownMenuItem(
+                            text = { Text("${app.companyName} (${app.id})") },
+                            onClick = {
+                                selectedApplications.add(app)
+                                appExpanded = false
+                            }
+                        )
+                    }
+                }
+            }
+        }
+
+        selectedApplications.forEach { app ->
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp)
+            ) {
+                Text("${app.companyName} (${app.id})", modifier = Modifier.weight(1f))
+                IconButton(onClick = { selectedApplications.remove(app) }) {
+                    Icon(Icons.Default.Delete, contentDescription = "Remove")
+                }
+            }
+        }
+
         BlackButton(
             onClick = {
-                InMemoryData.contacts.add(Contact(id = InMemoryData.contacts.size + 1, fullName = name, role = ContactRole.RECRUITER, email = email))
+                val newId = (InMemoryData.contacts.maxOfOrNull { it.id } ?: 0) + 1
+                InMemoryData.contacts.add(Contact(id = newId, fullName = name, role = role, email = email))
+                
+                selectedApplications.forEach { app ->
+                    InMemoryData.jobApplicationContacts.add(JobApplicationContact(app.id, newId))
+                }
+                
                 onComplete()
             },
             enabled = name.isNotBlank(),
@@ -244,32 +353,107 @@ fun AddContactForm(onComplete: () -> Unit) {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddApplicationForm(onComplete: () -> Unit) {
     var company by remember { mutableStateOf("") }
-    var role by remember { mutableStateOf("") }
+    var roleTitle by remember { mutableStateOf("") }
+    var roleDescription by remember { mutableStateOf("") }
+    var status by remember { mutableStateOf(ApplicationStatus.ACTIVE) }
+    var stage by remember { mutableStateOf(ApplicationStage.APPLIED) }
+    val selectedContacts = remember { mutableStateListOf<Contact>() }
+    var contactExpanded by remember { mutableStateOf(false) }
 
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text("New Application", style = MaterialTheme.typography.headlineSmall)
         OutlinedTextField(value = company, onValueChange = { company = it }, label = { Text("Company Name") }, modifier = Modifier.fillMaxWidth())
-        OutlinedTextField(value = role, onValueChange = { role = it }, label = { Text("Role Title") }, modifier = Modifier.fillMaxWidth())
+        OutlinedTextField(value = roleTitle, onValueChange = { roleTitle = it }, label = { Text("Role Title") }, modifier = Modifier.fillMaxWidth())
+        OutlinedTextField(
+            value = roleDescription,
+            onValueChange = { roleDescription = it },
+            label = { Text("Role Description") },
+            modifier = Modifier.fillMaxWidth(),
+            minLines = 3
+        )
+        
+        EnumDropdown(
+            label = "Status",
+            options = ApplicationStatus.values(),
+            selectedOption = status,
+            onOptionSelected = { status = it }
+        )
+        
+        EnumDropdown(
+            label = "Stage",
+            options = ApplicationStage.values(),
+            selectedOption = stage,
+            onOptionSelected = { stage = it }
+        )
+
+        Text("Associated Contacts", style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(top = 8.dp))
+        ExposedDropdownMenuBox(
+            expanded = contactExpanded,
+            onExpandedChange = { contactExpanded = !contactExpanded },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            OutlinedTextField(
+                value = "Select Contact",
+                onValueChange = {},
+                readOnly = true,
+                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = contactExpanded) },
+                modifier = Modifier.menuAnchor().fillMaxWidth()
+            )
+            ExposedDropdownMenu(
+                expanded = contactExpanded,
+                onDismissRequest = { contactExpanded = false }
+            ) {
+                InMemoryData.contacts.forEach { contact ->
+                    if (contact !in selectedContacts) {
+                        DropdownMenuItem(
+                            text = { Text(contact.fullName) },
+                            onClick = {
+                                selectedContacts.add(contact)
+                                contactExpanded = false
+                            }
+                        )
+                    }
+                }
+            }
+        }
+
+        selectedContacts.forEach { contact ->
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp)
+            ) {
+                Text(contact.fullName, modifier = Modifier.weight(1f))
+                IconButton(onClick = { selectedContacts.remove(contact) }) {
+                    Icon(Icons.Default.Delete, contentDescription = "Remove")
+                }
+            }
+        }
+
         BlackButton(
             onClick = {
+                val newId = (InMemoryData.jobApplications.maxOfOrNull { it.id } ?: 0) + 1
                 InMemoryData.jobApplications.add(
                     JobApplication(
-                        id = InMemoryData.jobApplications.size + 1,
+                        id = newId,
                         companyName = company,
-                        roleTitle = role,
+                        roleTitle = roleTitle,
                         applicationDate = Clock.System.now().toEpochMilliseconds().toString(),
-                        currentStage = ApplicationStage.APPLIED,
-                        status = ApplicationStatus.ACTIVE,
-                        roleDescription = "",
+                        currentStage = stage,
+                        status = status,
+                        roleDescription = roleDescription,
                         location = ""
                     )
                 )
+                selectedContacts.forEach { contact ->
+                    InMemoryData.jobApplicationContacts.add(JobApplicationContact(newId, contact.id))
+                }
                 onComplete()
             },
-            enabled = company.isNotBlank() && role.isNotBlank(),
+            enabled = company.isNotBlank() && roleTitle.isNotBlank(),
             modifier = Modifier.fillMaxWidth()
         ) {
             Text("Save Application")
@@ -277,21 +461,62 @@ fun AddApplicationForm(onComplete: () -> Unit) {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddInteractionForm(onComplete: () -> Unit) {
     var notes by remember { mutableStateOf("") }
+    var type by remember { mutableStateOf(EventType.EMAIL) }
+    var selectedApplication by remember { mutableStateOf(InMemoryData.jobApplications.firstOrNull()) }
+    var appExpanded by remember { mutableStateOf(false) }
 
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text("New Interaction", style = MaterialTheme.typography.headlineSmall)
+        
+        ExposedDropdownMenuBox(
+            expanded = appExpanded,
+            onExpandedChange = { appExpanded = !appExpanded },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            OutlinedTextField(
+                value = selectedApplication?.let { "${it.companyName} (${it.id})" } ?: "Select Application",
+                onValueChange = {},
+                readOnly = true,
+                label = { Text("Job Application") },
+                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = appExpanded) },
+                modifier = Modifier.menuAnchor().fillMaxWidth()
+            )
+            ExposedDropdownMenu(
+                expanded = appExpanded,
+                onDismissRequest = { appExpanded = false }
+            ) {
+                InMemoryData.jobApplications.forEach { app ->
+                    DropdownMenuItem(
+                        text = { Text("${app.companyName} (${app.id})") },
+                        onClick = {
+                            selectedApplication = app
+                            appExpanded = false
+                        }
+                    )
+                }
+            }
+        }
+
+        EnumDropdown(
+            label = "Event Type",
+            options = EventType.values(),
+            selectedOption = type,
+            onOptionSelected = { type = it }
+        )
+
         OutlinedTextField(value = notes, onValueChange = { notes = it }, label = { Text("Notes") }, modifier = Modifier.fillMaxWidth(), minLines = 3)
-        Text("Note: Defaulting to first application for demo", style = MaterialTheme.typography.bodySmall)
+        
         BlackButton(
             onClick = {
                 InMemoryData.events.add(
                     Event(
-                        id = InMemoryData.events.size + 1,
-                        jobApplicationId = InMemoryData.jobApplications.firstOrNull()?.id ?: 1,
-                        type = EventType.PHONE_CALL,
+                        id = (InMemoryData.events.maxOfOrNull { it.id } ?: 0) + 1,
+                        jobApplicationId = selectedApplication?.id ?: 1,
+                        type = type,
                         occurredAt = Clock.System.now().toEpochMilliseconds().toString(),
                         notes = notes,
                         contactId = null
@@ -299,7 +524,7 @@ fun AddInteractionForm(onComplete: () -> Unit) {
                 )
                 onComplete()
             },
-            enabled = notes.isNotBlank(),
+            enabled = notes.isNotBlank() && selectedApplication != null,
             modifier = Modifier.fillMaxWidth()
         ) {
             Text("Save Interaction")
