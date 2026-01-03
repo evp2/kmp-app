@@ -210,16 +210,16 @@ fun EventsScreen() {
     Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
         Text("My Events", style = MaterialTheme.typography.headlineMedium, modifier = Modifier.padding(bottom = 16.dp))
         LazyColumn {
-            items(InMemoryData.events) { interaction ->
-                val contact = interaction.contactId?.let { id -> InMemoryData.contacts.find { it.id == id } }
-                val application = InMemoryData.jobApplications.find { it.id == interaction.jobApplicationId }
+            items(InMemoryData.events) { event ->
+                val contact = event.contactId?.let { id -> InMemoryData.contacts.find { it.id == id } }
+                val application = InMemoryData.jobApplications.find { it.id == event.jobApplicationId }
 
                 Card(
                     modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
                     elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
-                        Text(text = interaction.type.name, style = MaterialTheme.typography.titleMedium)
+                        Text(text = event.type.name, style = MaterialTheme.typography.titleMedium)
                         application?.let {
                             Text(text = "Company: ${it.companyName}", style = MaterialTheme.typography.bodyMedium)
                         }
@@ -227,7 +227,7 @@ fun EventsScreen() {
                             Text(text = "With: ${it.fullName}", style = MaterialTheme.typography.bodySmall)
                         }
                         Text(text = "Date: ${application?.applicationDate}", style = MaterialTheme.typography.bodySmall)
-                        interaction.notes?.let {
+                        event.notes?.let {
                             Text(text = it, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = 4.dp))
                         }
                     }
@@ -237,7 +237,7 @@ fun EventsScreen() {
     }
 }
 
-enum class AddTarget { MENU, CONTACT, APPLICATION, INTERACTION }
+enum class AddTarget { MENU, CONTACT, APPLICATION, EVENT }
 
 @Composable
 fun AddScreen() {
@@ -260,14 +260,14 @@ fun AddScreen() {
                     BlackButton(onClick = { target = AddTarget.CONTACT }, modifier = Modifier.fillMaxWidth()) {
                         Text("New Contact")
                     }
-                    BlackButton(onClick = { target = AddTarget.INTERACTION }, modifier = Modifier.fillMaxWidth()) {
+                    BlackButton(onClick = { target = AddTarget.EVENT }, modifier = Modifier.fillMaxWidth()) {
                         Text("New Event")
                     }
                 }
             }
             AddTarget.CONTACT -> AddContactForm { target = AddTarget.MENU }
             AddTarget.APPLICATION -> AddApplicationForm { target = AddTarget.MENU }
-            AddTarget.INTERACTION -> AddInteractionForm { target = AddTarget.MENU }
+            AddTarget.EVENT -> AddEventForm { target = AddTarget.MENU }
         }
     }
 }
@@ -492,7 +492,7 @@ fun AddApplicationForm(onComplete: () -> Unit) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AddInteractionForm(onComplete: () -> Unit) {
+fun AddEventForm(onComplete: () -> Unit) {
     var notes by remember { mutableStateOf("") }
     var type by remember { mutableStateOf(EventType.EMAIL) }
     var selectedApplication by remember { mutableStateOf(InMemoryData.jobApplications.firstOrNull()) }
@@ -527,6 +527,8 @@ fun AddInteractionForm(onComplete: () -> Unit) {
                 Text("Save")
             }
         }
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text("New Event", style = MaterialTheme.typography.headlineSmall)
         
         Column(
             modifier = Modifier.weight(1f).verticalScroll(rememberScrollState()),
@@ -569,6 +571,26 @@ fun AddInteractionForm(onComplete: () -> Unit) {
             )
 
             OutlinedTextField(value = notes, onValueChange = { notes = it }, label = { Text("Notes") }, modifier = Modifier.fillMaxWidth(), minLines = 3)
+        OutlinedTextField(value = notes, onValueChange = { notes = it }, label = { Text("Notes") }, modifier = Modifier.fillMaxWidth(), minLines = 3)
+        
+        BlackButton(
+            onClick = {
+                InMemoryData.events.add(
+                    Event(
+                        id = (InMemoryData.events.maxOfOrNull { it.id } ?: 0) + 1,
+                        jobApplicationId = selectedApplication?.id ?: 1,
+                        type = type,
+                        occurredAt = Clock.System.now().toEpochMilliseconds().toString(),
+                        notes = notes,
+                        contactId = null
+                    )
+                )
+                onComplete()
+            },
+            enabled = notes.isNotBlank() && selectedApplication != null,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Save Event")
         }
     }
 }
