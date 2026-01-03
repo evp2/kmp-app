@@ -10,6 +10,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Add
@@ -279,76 +281,89 @@ fun AddContactForm(onComplete: () -> Unit) {
     val selectedApplications = remember { mutableStateListOf<JobApplication>() }
     var appExpanded by remember { mutableStateOf(false) }
 
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text("New Contact", style = MaterialTheme.typography.headlineSmall)
-        OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Full Name") }, modifier = Modifier.fillMaxWidth())
-        OutlinedTextField(value = email, onValueChange = { email = it }, label = { Text("Email") }, modifier = Modifier.fillMaxWidth())
-        
-        EnumDropdown(
-            label = "Role",
-            options = ContactRole.values(),
-            selectedOption = role,
-            onOptionSelected = { role = it }
-        )
+    val hasChanged = name.isNotEmpty() || email.isNotEmpty() || role != ContactRole.OTHER || selectedApplications.isNotEmpty()
 
-        Text("Associated Applications", style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(top = 8.dp))
-        ExposedDropdownMenuBox(
-            expanded = appExpanded,
-            onExpandedChange = { appExpanded = !appExpanded },
-            modifier = Modifier.fillMaxWidth()
+    Column(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            OutlinedTextField(
-                value = "Select Application",
-                onValueChange = {},
-                readOnly = true,
-                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = appExpanded) },
-                modifier = Modifier.menuAnchor().fillMaxWidth()
-            )
-            ExposedDropdownMenu(
-                expanded = appExpanded,
-                onDismissRequest = { appExpanded = false }
+            Text("New Contact", style = MaterialTheme.typography.headlineSmall)
+            BlackButton(
+                onClick = {
+                    val newId = (InMemoryData.contacts.maxOfOrNull { it.id } ?: 0) + 1
+                    InMemoryData.contacts.add(Contact(id = newId, fullName = name, role = role, email = email))
+                    
+                    selectedApplications.forEach { app ->
+                        InMemoryData.jobApplicationContacts.add(JobApplicationContact(app.id, newId))
+                    }
+                    
+                    onComplete()
+                },
+                enabled = hasChanged && name.isNotBlank()
             ) {
-                InMemoryData.jobApplications.forEach { app ->
-                    if (app !in selectedApplications) {
-                        DropdownMenuItem(
-                            text = { Text("${app.companyName} (${app.id})") },
-                            onClick = {
-                                selectedApplications.add(app)
-                                appExpanded = false
-                            }
-                        )
+                Text("Save")
+            }
+        }
+
+        Column(
+            //ensure form vertical scrolling
+            modifier = Modifier.weight(1f).verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Full Name") }, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(value = email, onValueChange = { email = it }, label = { Text("Email") }, modifier = Modifier.fillMaxWidth())
+            
+            EnumDropdown(
+                label = "Role",
+                options = ContactRole.values(),
+                selectedOption = role,
+                onOptionSelected = { role = it }
+            )
+
+            Text("Associated Applications", style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(top = 8.dp))
+            ExposedDropdownMenuBox(
+                expanded = appExpanded,
+                onExpandedChange = { appExpanded = !appExpanded },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                OutlinedTextField(
+                    value = "Select Application",
+                    onValueChange = {},
+                    readOnly = true,
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = appExpanded) },
+                    modifier = Modifier.menuAnchor().fillMaxWidth()
+                )
+                ExposedDropdownMenu(
+                    expanded = appExpanded,
+                    onDismissRequest = { appExpanded = false }
+                ) {
+                    InMemoryData.jobApplications.forEach { app ->
+                        if (app !in selectedApplications) {
+                            DropdownMenuItem(
+                                text = { Text("${app.companyName} (${app.id})") },
+                                onClick = {
+                                    selectedApplications.add(app)
+                                    appExpanded = false
+                                }
+                            )
+                        }
                     }
                 }
             }
-        }
 
-        selectedApplications.forEach { app ->
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp)
-            ) {
-                Text("${app.companyName} (${app.id})", modifier = Modifier.weight(1f))
-                IconButton(onClick = { selectedApplications.remove(app) }) {
-                    Icon(Icons.Default.Delete, contentDescription = "Remove")
+            selectedApplications.forEach { app ->
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp)
+                ) {
+                    Text("${app.companyName} (${app.id})", modifier = Modifier.weight(1f))
+                    IconButton(onClick = { selectedApplications.remove(app) }) {
+                        Icon(Icons.Default.Delete, contentDescription = "Remove")
+                    }
                 }
             }
-        }
-
-        BlackButton(
-            onClick = {
-                val newId = (InMemoryData.contacts.maxOfOrNull { it.id } ?: 0) + 1
-                InMemoryData.contacts.add(Contact(id = newId, fullName = name, role = role, email = email))
-                
-                selectedApplications.forEach { app ->
-                    InMemoryData.jobApplicationContacts.add(JobApplicationContact(app.id, newId))
-                }
-                
-                onComplete()
-            },
-            enabled = name.isNotBlank(),
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text("Save Contact")
         }
     }
 }
@@ -364,99 +379,113 @@ fun AddApplicationForm(onComplete: () -> Unit) {
     val selectedContacts = remember { mutableStateListOf<Contact>() }
     var contactExpanded by remember { mutableStateOf(false) }
 
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text("New Application", style = MaterialTheme.typography.headlineSmall)
-        OutlinedTextField(value = company, onValueChange = { company = it }, label = { Text("Company Name") }, modifier = Modifier.fillMaxWidth())
-        OutlinedTextField(value = roleTitle, onValueChange = { roleTitle = it }, label = { Text("Role Title") }, modifier = Modifier.fillMaxWidth())
-        OutlinedTextField(
-            value = roleDescription,
-            onValueChange = { roleDescription = it },
-            label = { Text("Role Description") },
-            modifier = Modifier.fillMaxWidth(),
-            minLines = 3
-        )
-        
-        EnumDropdown(
-            label = "Status",
-            options = ApplicationStatus.values(),
-            selectedOption = status,
-            onOptionSelected = { status = it }
-        )
-        
-        EnumDropdown(
-            label = "Stage",
-            options = ApplicationStage.values(),
-            selectedOption = stage,
-            onOptionSelected = { stage = it }
-        )
+    val hasChanged = company.isNotEmpty() || roleTitle.isNotEmpty() || roleDescription.isNotEmpty() || 
+                     status != ApplicationStatus.ACTIVE || stage != ApplicationStage.APPLIED || 
+                     selectedContacts.isNotEmpty()
 
-        Text("Associated Contacts", style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(top = 8.dp))
-        ExposedDropdownMenuBox(
-            expanded = contactExpanded,
-            onExpandedChange = { contactExpanded = !contactExpanded },
-            modifier = Modifier.fillMaxWidth()
+    Column(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            OutlinedTextField(
-                value = "Select Contact",
-                onValueChange = {},
-                readOnly = true,
-                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = contactExpanded) },
-                modifier = Modifier.menuAnchor().fillMaxWidth()
-            )
-            ExposedDropdownMenu(
-                expanded = contactExpanded,
-                onDismissRequest = { contactExpanded = false }
-            ) {
-                InMemoryData.contacts.forEach { contact ->
-                    if (contact !in selectedContacts) {
-                        DropdownMenuItem(
-                            text = { Text(contact.fullName) },
-                            onClick = {
-                                selectedContacts.add(contact)
-                                contactExpanded = false
-                            }
+            Text("New Application", style = MaterialTheme.typography.headlineSmall)
+            BlackButton(
+                onClick = {
+                    val newId = (InMemoryData.jobApplications.maxOfOrNull { it.id } ?: 0) + 1
+                    InMemoryData.jobApplications.add(
+                        JobApplication(
+                            id = newId,
+                            companyName = company,
+                            roleTitle = roleTitle,
+                            applicationDate = Clock.System.now().toEpochMilliseconds().toString(),
+                            currentStage = stage,
+                            status = status,
+                            roleDescription = roleDescription,
+                            location = ""
                         )
+                    )
+                    selectedContacts.forEach { contact ->
+                        InMemoryData.jobApplicationContacts.add(JobApplicationContact(newId, contact.id))
+                    }
+                    onComplete()
+                },
+                enabled = hasChanged && company.isNotBlank() && roleTitle.isNotBlank()
+            ) {
+                Text("Save")
+            }
+        }
+
+        Column(
+            modifier = Modifier.weight(1f).verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            OutlinedTextField(value = company, onValueChange = { company = it }, label = { Text("Company Name") }, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(value = roleTitle, onValueChange = { roleTitle = it }, label = { Text("Role Title") }, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(
+                value = roleDescription,
+                onValueChange = { roleDescription = it },
+                label = { Text("Role Description") },
+                modifier = Modifier.fillMaxWidth(),
+                minLines = 3
+            )
+            
+            EnumDropdown(
+                label = "Status",
+                options = ApplicationStatus.values(),
+                selectedOption = status,
+                onOptionSelected = { status = it }
+            )
+            
+            EnumDropdown(
+                label = "Stage",
+                options = ApplicationStage.values(),
+                selectedOption = stage,
+                onOptionSelected = { stage = it }
+            )
+
+            Text("Associated Contacts", style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(top = 8.dp))
+            ExposedDropdownMenuBox(
+                expanded = contactExpanded,
+                onExpandedChange = { contactExpanded = !contactExpanded },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                OutlinedTextField(
+                    value = "Select Contact",
+                    onValueChange = {},
+                    readOnly = true,
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = contactExpanded) },
+                    modifier = Modifier.menuAnchor().fillMaxWidth()
+                )
+                ExposedDropdownMenu(
+                    expanded = contactExpanded,
+                    onDismissRequest = { contactExpanded = false }
+                ) {
+                    InMemoryData.contacts.forEach { contact ->
+                        if (contact !in selectedContacts) {
+                            DropdownMenuItem(
+                                text = { Text(contact.fullName) },
+                                onClick = {
+                                    selectedContacts.add(contact)
+                                    contactExpanded = false
+                                }
+                            )
+                        }
                     }
                 }
             }
-        }
 
-        selectedContacts.forEach { contact ->
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp)
-            ) {
-                Text(contact.fullName, modifier = Modifier.weight(1f))
-                IconButton(onClick = { selectedContacts.remove(contact) }) {
-                    Icon(Icons.Default.Delete, contentDescription = "Remove")
+            selectedContacts.forEach { contact ->
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp)
+                ) {
+                    Text(contact.fullName, modifier = Modifier.weight(1f))
+                    IconButton(onClick = { selectedContacts.remove(contact) }) {
+                        Icon(Icons.Default.Delete, contentDescription = "Remove")
+                    }
                 }
             }
-        }
-
-        BlackButton(
-            onClick = {
-                val newId = (InMemoryData.jobApplications.maxOfOrNull { it.id } ?: 0) + 1
-                InMemoryData.jobApplications.add(
-                    JobApplication(
-                        id = newId,
-                        companyName = company,
-                        roleTitle = roleTitle,
-                        applicationDate = Clock.System.now().toEpochMilliseconds().toString(),
-                        currentStage = stage,
-                        status = status,
-                        roleDescription = roleDescription,
-                        location = ""
-                    )
-                )
-                selectedContacts.forEach { contact ->
-                    InMemoryData.jobApplicationContacts.add(JobApplicationContact(newId, contact.id))
-                }
-                onComplete()
-            },
-            enabled = company.isNotBlank() && roleTitle.isNotBlank(),
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text("Save Application")
         }
     }
 }
@@ -469,45 +498,79 @@ fun AddEventForm(onComplete: () -> Unit) {
     var selectedApplication by remember { mutableStateOf(InMemoryData.jobApplications.firstOrNull()) }
     var appExpanded by remember { mutableStateOf(false) }
 
+    val initialApp = remember { InMemoryData.jobApplications.firstOrNull() }
+    val hasChanged = notes.isNotEmpty() || type != EventType.EMAIL || selectedApplication != initialApp
+
+    Column(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text("New Interaction", style = MaterialTheme.typography.headlineSmall)
+            BlackButton(
+                onClick = {
+                    InMemoryData.events.add(
+                        Event(
+                            id = (InMemoryData.events.maxOfOrNull { it.id } ?: 0) + 1,
+                            jobApplicationId = selectedApplication?.id ?: 1,
+                            type = type,
+                            occurredAt = Clock.System.now().toEpochMilliseconds().toString(),
+                            notes = notes,
+                            contactId = null
+                        )
+                    )
+                    onComplete()
+                },
+                enabled = hasChanged && notes.isNotBlank() && selectedApplication != null
+            ) {
+                Text("Save")
+            }
+        }
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text("New Event", style = MaterialTheme.typography.headlineSmall)
         
-        ExposedDropdownMenuBox(
-            expanded = appExpanded,
-            onExpandedChange = { appExpanded = !appExpanded },
-            modifier = Modifier.fillMaxWidth()
+        Column(
+            modifier = Modifier.weight(1f).verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            OutlinedTextField(
-                value = selectedApplication?.let { "${it.companyName} (${it.id})" } ?: "Select Application",
-                onValueChange = {},
-                readOnly = true,
-                label = { Text("Job Application") },
-                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = appExpanded) },
-                modifier = Modifier.menuAnchor().fillMaxWidth()
-            )
-            ExposedDropdownMenu(
+            ExposedDropdownMenuBox(
                 expanded = appExpanded,
-                onDismissRequest = { appExpanded = false }
+                onExpandedChange = { appExpanded = !appExpanded },
+                modifier = Modifier.fillMaxWidth()
             ) {
-                InMemoryData.jobApplications.forEach { app ->
-                    DropdownMenuItem(
-                        text = { Text("${app.companyName} (${app.id})") },
-                        onClick = {
-                            selectedApplication = app
-                            appExpanded = false
-                        }
-                    )
+                OutlinedTextField(
+                    value = selectedApplication?.let { "${it.companyName} (${it.id})" } ?: "Select Application",
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text("Job Application") },
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = appExpanded) },
+                    modifier = Modifier.menuAnchor().fillMaxWidth()
+                )
+                ExposedDropdownMenu(
+                    expanded = appExpanded,
+                    onDismissRequest = { appExpanded = false }
+                ) {
+                    InMemoryData.jobApplications.forEach { app ->
+                        DropdownMenuItem(
+                            text = { Text("${app.companyName} (${app.id})") },
+                            onClick = {
+                                selectedApplication = app
+                                appExpanded = false
+                            }
+                        )
+                    }
                 }
             }
-        }
 
-        EnumDropdown(
-            label = "Event Type",
-            options = EventType.values(),
-            selectedOption = type,
-            onOptionSelected = { type = it }
-        )
+            EnumDropdown(
+                label = "Event Type",
+                options = EventType.values(),
+                selectedOption = type,
+                onOptionSelected = { type = it }
+            )
 
+            OutlinedTextField(value = notes, onValueChange = { notes = it }, label = { Text("Notes") }, modifier = Modifier.fillMaxWidth(), minLines = 3)
         OutlinedTextField(value = notes, onValueChange = { notes = it }, label = { Text("Notes") }, modifier = Modifier.fillMaxWidth(), minLines = 3)
         
         BlackButton(
