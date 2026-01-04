@@ -60,14 +60,20 @@ data class Event(
     val id: Int,
     @SerialName("job_application_id")
     val jobApplicationId: Int,
-    @SerialName("contact_id")
-    val contactId: Int?,
     @SerialName("type")
     val type: EventType,
     @SerialName("occurred_at")
     val occurredAt: String? = null,
     @SerialName("notes")
     val notes: String? = null
+)
+
+@Serializable
+data class EventContact(
+    @SerialName("event_id")
+    val eventId: Int,
+    @SerialName("contact_id")
+    val contactId: Int
 )
 
 @Serializable

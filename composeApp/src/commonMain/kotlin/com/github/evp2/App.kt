@@ -53,6 +53,7 @@ import com.github.evp2.model.ApplicationStatus
 import com.github.evp2.model.Contact
 import com.github.evp2.model.ContactRole
 import com.github.evp2.model.Event
+import com.github.evp2.model.EventContact
 import com.github.evp2.model.EventType
 import com.github.evp2.model.InMemoryData
 import com.github.evp2.model.JobApplication
@@ -206,13 +207,14 @@ fun ProfileScreen() {
 
 @Composable
 fun EventsScreen() {
-
     Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
         Text("My Events", style = MaterialTheme.typography.headlineMedium, modifier = Modifier.padding(bottom = 16.dp))
         LazyColumn {
             items(InMemoryData.events) { event ->
-                val contact = event.contactId?.let { id -> InMemoryData.contacts.find { it.id == id } }
                 val application = InMemoryData.jobApplications.find { it.id == event.jobApplicationId }
+                val associatedContacts = InMemoryData.eventContacts
+                    .filter { it.eventId == event.id }
+                    .mapNotNull { ec -> InMemoryData.contacts.find { it.id == ec.contactId } }
 
                 Card(
                     modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
@@ -223,12 +225,16 @@ fun EventsScreen() {
                         application?.let {
                             Text(text = "Company: ${it.companyName}", style = MaterialTheme.typography.bodyMedium)
                         }
-                        contact?.let {
-                            Text(text = "With: ${it.fullName}", style = MaterialTheme.typography.bodySmall)
-                        }
                         Text(text = "Date: ${application?.applicationDate}", style = MaterialTheme.typography.bodySmall)
                         event.notes?.let {
                             Text(text = it, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = 4.dp))
+                        }
+                        if (associatedContacts.isNotEmpty()) {
+                            Text(
+                                text = "Contacts: ${associatedContacts.joinToString { it.fullName }}",
+                                style = MaterialTheme.typography.bodySmall,
+                                modifier = Modifier.padding(top = 4.dp)
+                            )
                         }
                     }
                 }
@@ -496,10 +502,14 @@ fun AddEventForm(onComplete: () -> Unit) {
     var notes by remember { mutableStateOf("") }
     var type by remember { mutableStateOf(EventType.EMAIL) }
     var selectedApplication by remember { mutableStateOf(InMemoryData.jobApplications.firstOrNull()) }
+    var selectedContact by remember { mutableStateOf(InMemoryData.contacts.firstOrNull()) }
     var appExpanded by remember { mutableStateOf(false) }
+    var contactExpanded by remember { mutableStateOf(false) }
 
     val initialApp = remember { InMemoryData.jobApplications.firstOrNull() }
-    val hasChanged = notes.isNotEmpty() || type != EventType.EMAIL || selectedApplication != initialApp
+    val initialContact = remember { InMemoryData.contacts.firstOrNull() }
+    val hasChanged = notes.isNotEmpty() || type != EventType.EMAIL || 
+                     selectedApplication != initialApp || selectedContact != initialContact
 
     Column(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(
@@ -507,19 +517,22 @@ fun AddEventForm(onComplete: () -> Unit) {
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text("New Interaction", style = MaterialTheme.typography.headlineSmall)
+            Text("New Event", style = MaterialTheme.typography.headlineSmall)
             BlackButton(
                 onClick = {
+                    val eventId = (InMemoryData.events.maxOfOrNull { it.id } ?: 0) + 1
                     InMemoryData.events.add(
                         Event(
-                            id = (InMemoryData.events.maxOfOrNull { it.id } ?: 0) + 1,
+                            id = eventId,
                             jobApplicationId = selectedApplication?.id ?: 1,
                             type = type,
                             occurredAt = Clock.System.now().toEpochMilliseconds().toString(),
-                            notes = notes,
-                            contactId = null
+                            notes = notes
                         )
                     )
+                    selectedContact?.let {
+                        InMemoryData.eventContacts.add(EventContact(eventId, it.id))
+                    }
                     onComplete()
                 },
                 enabled = hasChanged && notes.isNotBlank() && selectedApplication != null
@@ -527,70 +540,85 @@ fun AddEventForm(onComplete: () -> Unit) {
                 Text("Save")
             }
         }
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text("New Event", style = MaterialTheme.typography.headlineSmall)
-        
-        Column(
-            modifier = Modifier.weight(1f).verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            ExposedDropdownMenuBox(
-                expanded = appExpanded,
-                onExpandedChange = { appExpanded = !appExpanded },
-                modifier = Modifier.fillMaxWidth()
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(
+                modifier = Modifier.weight(1f).verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                OutlinedTextField(
-                    value = selectedApplication?.let { "${it.companyName} (${it.id})" } ?: "Select Application",
-                    onValueChange = {},
-                    readOnly = true,
-                    label = { Text("Job Application") },
-                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = appExpanded) },
-                    modifier = Modifier.menuAnchor().fillMaxWidth()
-                )
-                ExposedDropdownMenu(
-                    expanded = appExpanded,
-                    onDismissRequest = { appExpanded = false }
+                ExposedDropdownMenuBox(
+                    expanded = contactExpanded,
+                    onExpandedChange = { contactExpanded = !contactExpanded },
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    InMemoryData.jobApplications.forEach { app ->
-                        DropdownMenuItem(
-                            text = { Text("${app.companyName} (${app.id})") },
-                            onClick = {
-                                selectedApplication = app
-                                appExpanded = false
-                            }
-                        )
+                    OutlinedTextField(
+                        value = selectedContact?.fullName ?: "Select Contact",
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Contact") },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = contactExpanded) },
+                        modifier = Modifier.menuAnchor().fillMaxWidth()
+                    )
+                    ExposedDropdownMenu(
+                        expanded = contactExpanded,
+                        onDismissRequest = { contactExpanded = false }
+                    ) {
+                        InMemoryData.contacts.forEach { contact ->
+                            DropdownMenuItem(
+                                text = { Text(contact.fullName) },
+                                onClick = {
+                                    selectedContact = contact
+                                    contactExpanded = false
+                                }
+                            )
+                        }
                     }
                 }
-            }
 
-            EnumDropdown(
-                label = "Event Type",
-                options = EventType.values(),
-                selectedOption = type,
-                onOptionSelected = { type = it }
-            )
-
-            OutlinedTextField(value = notes, onValueChange = { notes = it }, label = { Text("Notes") }, modifier = Modifier.fillMaxWidth(), minLines = 3)
-        OutlinedTextField(value = notes, onValueChange = { notes = it }, label = { Text("Notes") }, modifier = Modifier.fillMaxWidth(), minLines = 3)
-        
-        BlackButton(
-            onClick = {
-                InMemoryData.events.add(
-                    Event(
-                        id = (InMemoryData.events.maxOfOrNull { it.id } ?: 0) + 1,
-                        jobApplicationId = selectedApplication?.id ?: 1,
-                        type = type,
-                        occurredAt = Clock.System.now().toEpochMilliseconds().toString(),
-                        notes = notes,
-                        contactId = null
+                ExposedDropdownMenuBox(
+                    expanded = appExpanded,
+                    onExpandedChange = { appExpanded = !appExpanded },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    OutlinedTextField(
+                        value = selectedApplication?.let { "${it.companyName} (${it.id})" }
+                            ?: "Select Application",
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Job Application") },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = appExpanded) },
+                        modifier = Modifier.menuAnchor().fillMaxWidth()
                     )
+                    ExposedDropdownMenu(
+                        expanded = appExpanded,
+                        onDismissRequest = { appExpanded = false }
+                    ) {
+                        InMemoryData.jobApplications.forEach { app ->
+                            DropdownMenuItem(
+                                text = { Text("${app.companyName} (${app.id})") },
+                                onClick = {
+                                    selectedApplication = app
+                                    appExpanded = false
+                                }
+                            )
+                        }
+                    }
+                }
+
+                EnumDropdown(
+                    label = "Event Type",
+                    options = EventType.values(),
+                    selectedOption = type,
+                    onOptionSelected = { type = it }
                 )
-                onComplete()
-            },
-            enabled = notes.isNotBlank() && selectedApplication != null,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text("Save Event")
+
+                OutlinedTextField(
+                    value = notes,
+                    onValueChange = { notes = it },
+                    label = { Text("Notes") },
+                    modifier = Modifier.fillMaxWidth(),
+                    minLines = 3
+                )
+            }
         }
     }
 }

@@ -28,7 +28,7 @@ class SharedCommonTest {
     fun testAddContact() {
         val initialSize = InMemoryData.contacts.size
         val newContact = Contact(
-            id = "test-id",
+            id = 999,
             fullName = "Test User",
             role = ContactRole.OTHER,
             email = "test@example.com"
@@ -42,7 +42,7 @@ class SharedCommonTest {
     fun testAddJobApplication() {
         val initialSize = InMemoryData.jobApplications.size
         val newApp = JobApplication(
-            id = "test-j-id",
+            id = 999,
             companyName = "Test Co",
             roleTitle = "Test Developer",
             location = "Remote",
