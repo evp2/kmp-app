@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+        cache: 'gradle'
+
+    - name: Grant execute permission for gradlew
+      run: chmod +x gradlew
+
+    - name: Run shared tests
+      # Using jvmTest to verify common logic on the JVM. 
+      # This avoids the overhead and complexity of running Android instrumentation or Robolectric tests in CI.
+      run: ./gradlew :shared:jvmTest
+
+    - name: Run server tests
+      run: ./gradlew :server:test
+
+    - name: Run composeApp unit tests
+      # Using jvmTest to verify Compose UI logic that is compatible with the JVM.
+      # Android-specific tests (like those requiring Robolectric) are excluded to keep CI fast and environment-agnostic.
+      run: ./gradlew :composeApp:jvmTest
