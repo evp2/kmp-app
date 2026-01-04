@@ -82,7 +82,6 @@ object InMemoryData {
         Event(
             id = 1,
             jobApplicationId = 1,
-            contactId = 1,
             type = EventType.PHONE_CALL,
             occurredAt = "1714608000000", // 2024-05-02
             notes = "Initial recruiter screen. Went well."
@@ -90,7 +89,6 @@ object InMemoryData {
         Event(
             id = 2,
             jobApplicationId = 1,
-            contactId = null,
             type = EventType.VIDEO_CALL,
             occurredAt = "1714953600000", // 2024-05-06
             notes = "Technical round 1: Algorithms and Data Structures."
@@ -98,7 +96,6 @@ object InMemoryData {
         Event(
             id = 3,
             jobApplicationId = 2,
-            contactId = 2,
             type = EventType.INTERVIEW,
             occurredAt = "1715212800000", // 2024-05-09
             notes = "Final onsite (virtual). Met the whole team."
@@ -110,5 +107,11 @@ object InMemoryData {
         JobApplicationContact(2, 2),
         JobApplicationContact(3, 3),
         JobApplicationContact(4, 3),
+    )
+
+    val eventContacts = mutableListOf(
+        EventContact(1, 1),
+        EventContact(2, 2),
+        EventContact(3, 3),
     )
 }

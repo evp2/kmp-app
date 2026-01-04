@@ -48,7 +48,7 @@ class ComposeAppCommonTest {
         onNodeWithText("New Contact").performClick()
         
         // Verify form
-        onNodeWithText("Save Contact").assertExists()
+        onNodeWithText("Save").assertExists()
         
         // We can't easily type in commonTest without more setup, 
         // but we can verify the UI structure is correct.
